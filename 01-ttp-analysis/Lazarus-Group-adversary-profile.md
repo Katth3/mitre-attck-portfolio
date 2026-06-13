@@ -1,6 +1,7 @@
 # Lazarus Group — Adversary Profile & TTP Analysis
 
-**Author:** Edna Katerine Ruiz Gutierrez 
+**Author:** Edna Katerine Ruiz Gutierrez
+
 **Date:** June 2026  
 **Framework:** MITRE ATT&CK Enterprise v15  
 **Sources:** MITRE ATT&CK, CISA Advisory AA22-108A, US-CERT Alert TA18-149A 
