@@ -1,24 +1,19 @@
-# Purple Team Exercises
+# Lab Reports
 
-Structured purple team exercise reports documenting adversary emulation,
-detection validation, and security gap analysis.
+Hands-on lab writeups documenting detection engineering exercises,
+tool configuration, and ATT&CK technique validation.
 
-Each exercise follows this methodology:
-1. Select threat actor based on industry relevance
-2. Map TTPs to ATT&CK
-3. Emulate techniques in controlled lab environment
-4. Validate detections in Splunk
-5. Document gaps and recommendations
+Each report follows this structure:
+- Objective
+- Environment
+- Step-by-step methodology
+- Observations and findings
+- Conclusion and gaps
 
-## Exercise index
+## Report index
 
-| File | Adversary | Scope | Status |
-|------|-----------|-------|--------|
-| APT29-purple-team-report.md | APT29 / Cozy Bear | 15 techniques, 4 tactics | Complete |
-
-## Lab environment
-
-- **Victim VM:** Windows 10 Enterprise + Sysmon (SwiftOnSecurity config)
-- **Attacker VM:** Kali Linux + Atomic Red Team
-- **SIEM:** Splunk Enterprise (developer license)
-- **Emulation platform:** Atomic Red Team / CALDERA
+| File | Topic | Techniques | Status |
+|------|-------|------------|--------|
+| sysmon-splunk-setup.md | Sysmon + Splunk lab setup | All | Complete |
+| atomic-redteam-T1059.md | Atomic Red Team — PowerShell execution | T1059.001 | Complete |
+| atomic-redteam-T1003.md | Atomic Red Team — LSASS credential dump | T1003.001 | Complete |
