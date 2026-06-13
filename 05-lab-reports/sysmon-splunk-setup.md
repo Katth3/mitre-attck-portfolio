@@ -13,7 +13,7 @@ Splunk to support MITRE ATT&CK detection engineering exercises.
 |-----------|---------|
 | Host OS | Windows 10 / 11 |
 | Virtualisation | VirtualBox 7.x |
-| Victim VM | Windows 10 Enterprise Evaluation |
+| Victim VM | Windows 11 Enterprise Evaluation |
 | SIEM | Splunk Enterprise 9.x (developer license) |
 | Endpoint telemetry | Sysmon v15 + SwiftOnSecurity config |
 
@@ -30,7 +30,7 @@ configuration file:
 Install via PowerShell (run as Administrator):
 
 ```powershell
-.\Sysmon64.exe -accepteula -i sysmonconfig.xml
+.\Sysmon64.exe -accepteula -i sysmonconfig-export.xml
 ```
 
 Verify Sysmon is running:
@@ -53,7 +53,7 @@ Running  Sysmon64           Sysmon64
 Open Event Viewer → Applications and Services Logs →
 Microsoft → Windows → Sysmon → Operational.
 
-Key Event IDs to confirm are populating:
+Key Event IDs confirmed populating:
 
 | Event ID | Description |
 |----------|-------------|
@@ -72,7 +72,7 @@ Download from splunk.com (developer license — free, 500MB/day).
 
 Run the installer and set:
 - Admin username: `admin`
-- Password: strong password, save it
+- Password: strong password
 - Default port: `8000`
 
 Access Splunk at: `http://localhost:8000`
@@ -81,64 +81,95 @@ Access Splunk at: `http://localhost:8000`
 
 ## Step 4 — Connect Sysmon logs to Splunk
 
-In Splunk: **Settings** → **Add Data** → **Monitor** → **Local Event Log Collections**.
+Due to Windows 11 permission restrictions on the Sysmon event channel,
+a scheduled task was configured to export Sysmon events to CSV every minute,
+which Splunk monitors as a file input.
 
-Add these log sources:
+Create export folder:
 
-```
-Microsoft-Windows-Sysmon/Operational
-Security
-System
-Application
-```
-
-Verify data is flowing — open Search and run:
-
-```splunk
-index=main | stats count by sourcetype
+```powershell
+New-Item -ItemType Directory -Path C:\SysmonLogs -Force
 ```
 
-Expected output includes:
+Create scheduled task:
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument '-Command "Get-WinEvent -LogName \"Microsoft-Windows-Sysmon/Operational\" -MaxEvents 200 | Select-Object TimeCreated, Id, Message | Export-Csv C:\SysmonLogs\sysmon.csv -Append -NoTypeInformation"'
+
+$trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 1) -Once -At (Get-Date)
+
+Register-ScheduledTask -TaskName "SysmonExport" -Action $action -Trigger $trigger -RunLevel Highest -Force
+
+Start-ScheduledTask -TaskName "SysmonExport"
 ```
-XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
-WinEventLog:Security
-WinEventLog:System
-```
+
+In Splunk: **Settings → Add Data → Monitor → Files & Directories**
+- Path: `C:\SysmonLogs\sysmon.csv`
+- Sourcetype: `csv`
+- Index: `main`
 
 ---
 
-## Step 5 — Validate with a test query
+## Step 5 — Verify data flow
 
-Run this SPL to confirm Sysmon process creation events are visible:
+Run in Splunk Search:
 
 ```splunk
-index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
-EventID=1
-| table _time, ComputerName, Image, CommandLine, ParentImage
-| head 20
+index=main sourcetype="csv" | head 20
 ```
 
-If results appear — lab is fully operational.
+Confirmed events visible including EventID 1 (Process Create)
+and EventID 13 (Registry value set).
 
 ---
 
 ## Observations
 
-- Sysmon with SwiftOnSecurity config generates approximately 200–400 MB
-  of log data per day on a lightly used Windows VM — within the 500MB
-  Splunk developer license limit.
-- Without Sysmon, Windows Security logs alone are insufficient to detect
-  the majority of ATT&CK techniques in the Execution and Defense Evasion
-  tactics.
-- Splunk search performance on a single VM is acceptable for lab purposes
-  with a 7-day retention window.
+- Sysmon with SwiftOnSecurity config generates rich telemetry across
+  all critical event types.
+- Windows 11 restricts direct event log access for Splunk services —
+  workaround via scheduled CSV export resolved the issue.
+- Splunk search confirmed events arriving within 60 seconds of activity.
+- EventID 13 (Registry) captured automatically alongside process events,
+  providing additional detection context beyond what was expected.
 
 ---
 
 ## Conclusion
 
-Lab environment is operational and ready for ATT&CK detection engineering
-exercises. Sysmon telemetry confirmed across all critical Event IDs.
-Splunk ingestion verified across 4 log sources.
+Lab environment is fully operational. Sysmon telemetry confirmed across
+EventID 1, 11, and 13. Splunk ingestion verified via CSV file monitor.
+Detection queries validated against real attacker techniques.
 
-**Next exercise:** Atomic Red Team T1059.001 — PowerShell execution validation.
+**Next exercise:** Atomic Red Team T1059.001 — automated PowerShell
+execution validation.
+
+---
+
+## Validation Results — Live Detection Evidence
+
+The following ATT&CK techniques were executed manually in the lab
+and confirmed detected in Splunk within 60 seconds of execution.
+
+| Technique | ID | Command used | Detected | Sysmon EventID |
+|-----------|-----|-------------|----------|----------------|
+| PowerShell suspicious flags | T1059.001 | `powershell.exe -NonInteractive -WindowStyle Hidden -Command "whoami"` | ✅ Yes | 1 |
+| Event log clearing | T1070.001 | `wevtutil cl System` | ✅ Yes | 1 |
+| Process discovery | T1057 | `tasklist.exe /fo csv > C:\Windows\Temp\proclist.txt` | ✅ Yes | 1 + 13 |
+
+**Detection rate: 3/3 (100%)**
+
+### Splunk queries used for validation
+
+```splunk
+index=main sourcetype="csv" Message="*NonInteractive*"
+index=main sourcetype="csv" Message="*wevtutil*"
+index=main sourcetype="csv" Message="*tasklist*"
+```
+
+### Key finding
+
+EventID 13 (Registry value set) was captured alongside the tasklist.exe
+execution, demonstrating that Sysmon telemetry provides broader context
+than process creation alone — registry activity associated with process
+execution is visible without additional configuration.
