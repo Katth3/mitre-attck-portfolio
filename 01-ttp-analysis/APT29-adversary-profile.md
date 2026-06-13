@@ -1,6 +1,6 @@
 # APT29 — Adversary Profile & TTP Analysis
 
-**Author:** Tu Nombre  
+**Author:** Edna Katerne Ruiz Gutierrez
 **Date:** June 2026  
 **Framework:** MITRE ATT&CK Enterprise v15  
 **Sources:** MITRE ATT&CK, CISA Advisory AA21-116A, Mandiant APT29 report
