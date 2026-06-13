@@ -1,5 +1,5 @@
 title: LSASS Memory Access — Credential Dumping
-id: c9d5e4f3-6a7b-890c-def0-123456789012
+id: c9d5e4f3-6a7b-890c-def0-123456789012 
 status: test
 description: >
   Detects attempts to access LSASS process memory, a common technique for
