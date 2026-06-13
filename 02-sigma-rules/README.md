@@ -14,7 +14,7 @@ Each rule includes: technique ID, log source, detection logic, and test notes.
 | T1070.001-event-log-cleared.yml | T1070.001 | Defense Evasion | Windows Security |
 | T1003.001-lsass-access.yml | T1003.001 | Credential Access | Windows — Sysmon |
 
-## How to convert to Splunk SPL
+## How to convert to Splunk SPL 
 
 ```bash
 sigma convert -t splunk -p sysmon rule.yml
