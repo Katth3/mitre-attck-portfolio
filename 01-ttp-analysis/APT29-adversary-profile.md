@@ -17,7 +17,7 @@ across Western nations — including Australia.
 
 **Motivation:** Espionage — collection of political and strategic intelligence  
 **Origin:** Russia (SVR)  
-**Active since:** 2008  
+**Active since:** 2008   
 **Notable campaigns:** SolarWinds (2020), Microsoft (2024), COVID-19 vaccine research
 
 ---
