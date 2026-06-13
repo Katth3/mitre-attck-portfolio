@@ -1,0 +1,33 @@
+title: Windows Event Log Cleared
+id: b8c4d3e2-5f6a-789b-cdef-012345678901
+status: stable
+description: >
+  Detects clearing of Windows Security or System event logs via Event ID 1102
+  and 104 respectively. This is a high-confidence indicator of an attacker
+  attempting to cover tracks. Used by APT29, Lazarus Group, and ransomware operators.
+  MITRE ATT&CK T1070.001.
+author: Edna Katerine Ruiz Gutierrez
+date: 2026-06-13
+references:
+  - https://attack.mitre.org/techniques/T1070/001/
+tags:
+  - attack.defense_evasion
+  - attack.t1070.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_security:
+    EventID: 1102
+  selection_system:
+    EventID: 104
+  condition: selection_security or selection_system
+falsepositives:
+  - Legitimate log rotation policies (rare — verify with IT ops)
+  - Scheduled maintenance scripts (document and whitelist)
+level: high
+fields:
+  - EventID
+  - SubjectUserName
+  - SubjectDomainName
+  - ComputerName
