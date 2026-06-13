@@ -1,5 +1,5 @@
 title: Windows Event Log Cleared
-id: b8c4d3e2-5f6a-789b-cdef-012345678901
+id: b8c4d3e2-5f6a-789b-cdef-012345678901 
 status: stable
 description: >
   Detects clearing of Windows Security or System event logs via Event ID 1102
