@@ -207,27 +207,39 @@ ATT&CK Navigator layer: `../04-navigator-layers/APT29-coverage.json`
 
 ### Risk
 
-Without EventID 10 coverage, T1003.001 is only detectable via EventID 1
+Without EventID 10 coverage, T1003.001 was only detectable via EventID 1
 (the parent process executing comsvcs.dll) — a weaker signal that can be
 evaded by using different LOLBins or direct syscalls (as in Atomic test
 T1003.001-3, which uses direct system calls and API unhooking to avoid
 this exact detection point).
 
-### Recommendation
+**Detection rate before remediation: 9/15 (60%). After Sysmon config
+update: 10/15 (67%).**
 
-Modify Sysmon configuration to explicitly include EventID 10 for
-`lsass.exe` as TargetImage:
+### Recommendation — Implemented and Validated
+
+Sysmon configuration was modified to explicitly include EventID 10 for
+processes accessing `lsass.exe`:
 
 ```xml
 <ProcessAccess onmatch="include">
-  <TargetImage condition="end with">lsass.exe</TargetImage>
+    <TargetImage condition="end with">lsass.exe</TargetImage>
 </ProcessAccess>
 ```
 
-Re-test after configuration change to confirm EID 10 generation.
+Applied via:
+```powershell
+Sysmon64.exe -c sysmonconfig-export.xml
+```
 
-**Updated detection rate including this live test: 9/15 (60%) — gap
-explicitly identified with remediation provided.**
+**Re-test result:** After configuration update, Atomic Red Team T1003.001-2
+was re-executed. Sysmon EventID 10 (Process Access) was successfully
+generated, capturing `SourceProcessId`, `TargetImage=lsass.exe`, and
+`GrantedAccess` — providing the exact signal required by Sigma rule
+`T1003.001-lsass-access.yml`.
+
+**Updated detection rate: 10/15 (67%)** — gap closed and validated
+through full detection engineering cycle: identify → analyze → remediate → verify.
 
 ---
 
