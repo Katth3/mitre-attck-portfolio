@@ -108,6 +108,37 @@ registry queries for OS inventory information (product name, build number).
 
 ---
 
+### Test 6 — T1018 Remote System Discovery via ARP
+**Tactic:** Discovery  
+**Command:** `Invoke-AtomicTest T1018 -TestNumbers 5`  
+**Sysmon EventID generated:** 1 (Process Create), 13 (Registry value set)  
+**Splunk query:** `index=main sourcetype="csv" Message="*arp*"`  
+**Result:** ✅ Detected — `arp.exe` execution captured, enumerating the
+local ARP cache. This is typically an early step before lateral movement,
+as attackers map reachable hosts on the local network segment.
+
+---
+
+### Test 7 — T1005 Data from Local System
+**Tactic:** Collection  
+**Command:** `Invoke-AtomicTest T1005 -TestNumbers 1`  
+**Sysmon EventID generated:** 1 (Process Create)  
+**Result:** ✅ Detected — full PowerShell command captured, showing search
+for `.doc`, `.docx`, `.txt` files across `C:\Users\` and compression into
+`data.zip` via `Compress-Archive`. This represents the collection phase
+that typically precedes exfiltration (T1041), as seen in the Agent Tesla
+analysis (`07-malware-analysis/agent-tesla-analysis.md`).
+
+**Detection note:** Standard substring searches (`*Compress-Archive*`)
+did not match due to CSV escaping of nested quotes in the command line.
+Broader queries filtering on EventID and time range, followed by manual
+inspection of the full `Message` field, were required to confirm detection.
+This highlights a practical limitation of CSV-based ingestion for complex
+PowerShell one-liners — a production Splunk deployment using
+`renderXml=true` via a proper Forwarder would parse these fields natively.
+
+---
+
 ## Summary
 
 | # | Technique | Tactic | Detected | Notes |
@@ -117,9 +148,12 @@ registry queries for OS inventory information (product name, build number).
 | 3 | T1003.001 | Credential Access | ✅ | Gap found + remediated live |
 | 4 | T1547.001 | Persistence | ✅ | ATT&CK-tagged Sysmon rule |
 | 5 | T1082 | Discovery | ✅ | Registry-based recon visible |
+| 6 | T1018 | Discovery | ✅ | ARP cache enumeration |
+| 7 | T1005 | Collection | ✅ | File staging before exfiltration |
 
-**Overall detection rate: 5/5 (100%) — including one technique that
-required live remediation to achieve detection.**
+**Overall detection rate: 7/7 (100%) — including one technique that
+required live remediation to achieve detection, and one that required
+broader query strategy due to CSV field escaping.**
 
 ---
 
