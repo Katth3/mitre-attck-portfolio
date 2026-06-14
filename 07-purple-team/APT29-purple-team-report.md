@@ -183,6 +183,54 @@ ATT&CK Navigator layer: `../04-navigator-layers/APT29-coverage.json`
 
 ---
 
+## Additional Finding — T1003.001 LSASS Memory Access (Live Test)
+
+**Date tested:** June 2026  
+**Method:** Atomic Red Team T1003.001-2 (rundll32 + comsvcs.dll MiniDump)
+
+### Observations
+
+1. **Tamper Protection blocked initial execution** — Windows Defender
+   Tamper Protection prevented `rundll32.exe` from accessing `lsass.exe`
+   memory on first attempt ("Access Denied"). This is a working
+   preventive control against T1003.001.
+
+2. **After disabling Tamper Protection**, the technique executed
+   successfully. Sysmon EventID 1 (Process Create) captured the
+   `rundll32.exe comsvcs.dll` execution.
+
+3. **Critical gap identified:** Sysmon EventID 10 (Process Access) —
+   the event type specifically designed to detect LSASS memory access —
+   was NOT generated. This means the current SwiftOnSecurity configuration
+   does not capture process access to LSASS, leaving a detection gap
+   for the most direct indicator of T1003.001.
+
+### Risk
+
+Without EventID 10 coverage, T1003.001 is only detectable via EventID 1
+(the parent process executing comsvcs.dll) — a weaker signal that can be
+evaded by using different LOLBins or direct syscalls (as in Atomic test
+T1003.001-3, which uses direct system calls and API unhooking to avoid
+this exact detection point).
+
+### Recommendation
+
+Modify Sysmon configuration to explicitly include EventID 10 for
+`lsass.exe` as TargetImage:
+
+```xml
+<ProcessAccess onmatch="include">
+  <TargetImage condition="end with">lsass.exe</TargetImage>
+</ProcessAccess>
+```
+
+Re-test after configuration change to confirm EID 10 generation.
+
+**Updated detection rate including this live test: 9/15 (60%) — gap
+explicitly identified with remediation provided.**
+
+---
+
 ## Lessons Learned
 
 1. **Sysmon is essential** — without it, half these detections would not exist.
@@ -197,6 +245,13 @@ ATT&CK Navigator layer: `../04-navigator-layers/APT29-coverage.json`
 
 4. **Purple teaming reveals what vulnerability scanning cannot** — a patched
    system can still be fully compromised if detections are missing.
+
+5. **Preventive controls and detective controls must be tested separately** —
+   Tamper Protection successfully blocked LSASS access on first attempt,
+   demonstrating defense-in-depth. However, once a preventive control is
+   bypassed or disabled, detective controls (Sysmon EID 10) must independently
+   catch the activity. This exercise found a gap in that second layer —
+   exactly the kind of finding purple teaming is designed to surface.
 
 ---
 
